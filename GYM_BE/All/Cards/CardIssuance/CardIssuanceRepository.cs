@@ -5,6 +5,7 @@ using GYM_BE.Entities;
 using GYM_BE.ENTITIES;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection;
 
 namespace GYM_BE.All.CardIssuance
 {
@@ -163,7 +164,7 @@ namespace GYM_BE.All.CardIssuance
 
             // check locker status
             var locker = await _dbContext.GoodsLockers.FirstOrDefaultAsync(x => x.ID == dto.LockerId);
-            if(locker!.STATUS_ID == 10030)
+            if(locker != null && locker!.STATUS_ID == 10030)
             {
                 return new FormatedResponse() { MessageCode = "Locker has been maintained.", ErrorType = EnumErrorType.CATCHABLE, StatusCode = EnumStatusCode.StatusCode400 };
             }
@@ -188,8 +189,8 @@ namespace GYM_BE.All.CardIssuance
 
                             var type = _dbContext.SysOtherLists.AsNoTracking().First(p => p.CODE == "TTRANS1").ID;
 
-                            var bill = await _genericOrdBillRepository.Create(new OrdBillDTO
-                            {
+                            OrdBillDTO newBill = new OrdBillDTO()
+                                {
                                 CustomerId = dto.CustomerId,
                                 DiscPercent = dto.PercentDiscount,
                                 PercentVat = dto.PercentVat,
@@ -199,11 +200,12 @@ namespace GYM_BE.All.CardIssuance
                                 PayMethod = 0,
                                 PerSellId = dto.PerSellId,
                                 Code = CreateNewCodeBill(),
-                                IsConfirm= false,
+                                    IsConfirm = false,
                                 Printed = false,
-                                PrintNumber =0,
-                                PkRef = Convert.ToInt64(response.InnerBody!.GetType().GetProperty("Id")!.GetValue(response.InnerBody, null))
-                            }, sid);
+                                PrintNumber = 0,
+                                PkRef = Convert.ToInt64(response.InnerBody!.GetType().GetProperty("ID")!.GetValue(response.InnerBody, null))
+                            };
+                            var bill = await _genericOrdBillRepository.Create(newBill , sid);
                             return response;
                         }
                         catch (Exception ex)

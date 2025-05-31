@@ -9,7 +9,7 @@ namespace GYM_BE.All.OrdBill
     public interface IOrdBillRepository: IGenericRepository<ORD_BILL, OrdBillDTO>
     {
         Task<FormatedResponse> QueryList(PaginationDTO<OrdBillDTO> pagination);
-        Task<ResultMemory> PrintBills(IdsRequest model);
+        Task<ResultMemory> PrintBills(IdsRequest model,string sid);
     }
 }
 

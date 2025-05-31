@@ -27,7 +27,7 @@ namespace GYM_BE.All.OrdBill
             IOptions<AppSettings> options)
         {
             _dbContext = new FullDbContext(dbOptions, options);
-            _OrdBillRepository = new OrdBillRepository(_dbContext);
+            _OrdBillRepository = new OrdBillRepository(_dbContext, options);
             _appSettings = options.Value;
         }
 
@@ -114,7 +114,9 @@ namespace GYM_BE.All.OrdBill
         [HttpPost]
         public async Task<IActionResult> PrintBills(IdsRequest model)
         {
-            var result = await _OrdBillRepository.PrintBills(model);
+            var sid = Request.Sid(_appSettings);
+            if (sid == null) return Unauthorized();
+            var result = await _OrdBillRepository.PrintBills(model,sid);
             if (result == null)
             {
                 return Ok(new { StatusCode = 404, StatusMessage = "Not Found!" }); // Handle case when invoice is not found

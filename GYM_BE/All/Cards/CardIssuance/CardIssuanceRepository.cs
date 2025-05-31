@@ -163,10 +163,13 @@ namespace GYM_BE.All.CardIssuance
             }
 
             // check locker status
-            var locker = await _dbContext.GoodsLockers.FirstOrDefaultAsync(x => x.ID == dto.LockerId);
-            if(locker != null && locker!.STATUS_ID == 10030)
+            if (dto.LockerId != null)
             {
-                return new FormatedResponse() { MessageCode = "Locker has been maintained.", ErrorType = EnumErrorType.CATCHABLE, StatusCode = EnumStatusCode.StatusCode400 };
+                var locker = await _dbContext.GoodsLockers.FirstOrDefaultAsync(x => x.ID == dto.LockerId);
+                if (locker!.STATUS_ID == 10030)
+                {
+                    return new FormatedResponse() { MessageCode = "Locker has been maintained.", ErrorType = EnumErrorType.CATCHABLE, StatusCode = EnumStatusCode.StatusCode400 };
+                }
             }
 
             var response = await _genericRepository.Create(dto, sid);
@@ -248,10 +251,13 @@ namespace GYM_BE.All.CardIssuance
             }
 
             // check locker status
-            var locker = await _dbContext.GoodsLockers.FirstOrDefaultAsync(x => x.ID == dto.LockerId);
-            if (locker!.STATUS_ID == 10030)
+            if(dto.LockerId != null)
             {
-                return new FormatedResponse() { MessageCode = "Locker has been maintained.", ErrorType = EnumErrorType.CATCHABLE, StatusCode = EnumStatusCode.StatusCode400 };
+                var locker = await _dbContext.GoodsLockers.FirstOrDefaultAsync(x => x.ID == dto.LockerId);
+                if (locker!.STATUS_ID == 10030)
+                {
+                    return new FormatedResponse() { MessageCode = "Locker has been maintained.", ErrorType = EnumErrorType.CATCHABLE, StatusCode = EnumStatusCode.StatusCode400 };
+                }
             }
 
             var response = await _genericRepository.Update(dto, sid, patchMode);
@@ -259,7 +265,7 @@ namespace GYM_BE.All.CardIssuance
             {
                 if (response.StatusCode == EnumStatusCode.StatusCode200)
                 {
-                    var card = await _dbContext.CardInfos.SingleAsync(x => x.ID == dto.Id);
+                    var card = await _dbContext.CardInfos.FirstOrDefaultAsync(x => x.ID == dto.Id);
                     if (card == null)
                     {
                         return new FormatedResponse() { MessageCode = "CARD_NOT_FOUND", ErrorType = EnumErrorType.CATCHABLE, StatusCode = EnumStatusCode.StatusCode400 };

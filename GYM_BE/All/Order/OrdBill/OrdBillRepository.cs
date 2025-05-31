@@ -1,10 +1,14 @@
+﻿using API;
 using GYM_BE.Core.Dto;
 using GYM_BE.Core.Extentions;
 using GYM_BE.Core.Generic;
 using GYM_BE.DTO;
 using GYM_BE.Entities;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using System.Data;
+using System.Linq;
 
 namespace GYM_BE.All.OrdBill
 {
@@ -12,11 +16,12 @@ namespace GYM_BE.All.OrdBill
     {
         private readonly FullDbContext _dbContext;
         private readonly GenericRepository<ORD_BILL, OrdBillDTO> _genericRepository;
-
-        public OrdBillRepository(FullDbContext context)
+        private AppSettings _appSettings;
+        public OrdBillRepository(FullDbContext context, IOptions<AppSettings> options)
         {
             _dbContext = context;
             _genericRepository = new GenericRepository<ORD_BILL, OrdBillDTO>(_dbContext);
+            _appSettings = options.Value;
         }
 
         public async Task<FormatedResponse> QueryList(PaginationDTO<OrdBillDTO> pagination)
@@ -27,6 +32,7 @@ namespace GYM_BE.All.OrdBill
                          from e in _dbContext.PerEmployees.AsNoTracking().Where(e => e.ID == p.PER_SELL_ID).DefaultIfEmpty()
                          from t in _dbContext.SysOtherLists.AsNoTracking().Where(t => t.ID == p.TYPE_TRANSFER).DefaultIfEmpty()
                          from v in _dbContext.GoodsDiscountVouchers.AsNoTracking().Where(v=> v.ID == p.VOUCHER_ID).DefaultIfEmpty()
+                         orderby  p.CREATED_DATE descending
 
                              //tuy chinh
                          select new OrdBillDTO
@@ -129,37 +135,40 @@ namespace GYM_BE.All.OrdBill
             throw new NotImplementedException();
         }
 
-        public async Task<ResultMemory> PrintBills(IdsRequest model)
+        public async Task<ResultMemory> PrintBills(IdsRequest model, string sid)
         {
-            var data = (from p in _dbContext.OrdBills.AsNoTracking().Where(p=> model.Ids.Contains(p.ID))
-                              from c in _dbContext.PerCustomers.AsNoTracking().Where(c => c.ID == p.CUSTOMER_ID).DefaultIfEmpty()
-                              from o in _dbContext.SysOtherLists.AsNoTracking().Where(o => o.ID == p.PAY_METHOD).DefaultIfEmpty()
-                              from e in _dbContext.PerEmployees.AsNoTracking().Where(e => e.ID == p.PER_SELL_ID).DefaultIfEmpty()
-                              from t in _dbContext.SysOtherLists.AsNoTracking().Where(t => t.ID == p.TYPE_TRANSFER).DefaultIfEmpty()
-                              from v in _dbContext.GoodsDiscountVouchers.AsNoTracking().Where(v => v.ID == p.VOUCHER_ID).DefaultIfEmpty()
+            // Truy vấn thủ tục SQL để lấy dữ liệu
+            string cnnString = _appSettings.ConnectionStrings.CoreDb;
+            using SqlConnection cnn = new(cnnString);
+            using SqlCommand cmd = new();
+            using DataSet dataset = new();
+            cmd.Connection = cnn;
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.CommandText = "PKG_PRINT_BILLS";
+            if (model.Ids != null)
+            {
+               
+                cmd.Parameters.Add(new SqlParameter
+                {
+                    ParameterName = "P_IDS",
+                    SqlDbType = (SqlDbType)Enum.Parse(typeof(SqlDbType), "VarChar", true),
+                    Direction = ParameterDirection.Input,
+                    Value = string.Join(",", model.Ids),
+                });
+            }
+            if (sid != null)
+            {
+                cmd.Parameters.Add(new SqlParameter
+                {
+                    ParameterName = "P_SID",
+                    SqlDbType = (SqlDbType)Enum.Parse(typeof(SqlDbType), "VarChar", true),
+                    Direction = ParameterDirection.Input,
+                    Value =  sid,
+                });
+            }
 
-                                  //tuy chinh
-                              select new OrdBillDTO
-                              {
-                                  Id = p.ID,
-                                  Code = p.CODE,
-                                  CreatedDate = p.CREATED_DATE,
-                                  MoneyHavePay = p.MONEY_HAVE_PAY,
-                                  TotalMoney = p.TOTAL_MONEY,
-                                  DiscPercent = p.DISC_PERCENT,
-                                  PercentVat = p.PERCENT_VAT,
-                                  VoucherId = p.VOUCHER_ID,
-                                  TypeTransfer = p.TYPE_TRANSFER,
-                                  TypeTransferName = t.NAME,
-                                  CustomerName = c.FULL_NAME,
-                                  PerSellName = e.FULL_NAME,
-                                  PayMethodName = o.NAME,
-                                  IsConfirm = p.IS_CONFIRM,
-                                  Printed = p.PRINTED,
-                                  PrintNumber = p.PRINT_NUMBER,
-                              }).AsQueryable();
-            var dataset = new DataSet();
-            dataset.Tables.Add(HttpRequestExtensions.ToDataTable<OrdBillDTO>(data));
+            using SqlDataAdapter da = new(cmd);
+            da.Fill(dataset);
             dataset.Tables[0].TableName = "DATA";
             var memory = HttpRequestExtensions.FillTemplatePDF(EnumStatic.ORER_BILL, dataset);
             return new ResultMemory() {memoryStream = memory };

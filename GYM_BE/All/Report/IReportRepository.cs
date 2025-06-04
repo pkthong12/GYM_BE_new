@@ -6,6 +6,12 @@ namespace GYM_BE.All.Report
     public interface IReportRepository
     {
         Task<FormatedResponse> TestStore();
+
+        Task<FormatedResponse> GetStats(ReportDTO request);
+
+        Task<FormatedResponse> GetBarChart(ReportDTO request);
+
+        Task<FormatedResponse> GetPieChart(ReportDTO request);
         byte[] GetReport(ReportDTO request);
 
     }

@@ -17,6 +17,7 @@ using System.Reflection;
 using GYM_BE.Core.DataContract;
 using GYM_BE.All.System.Common.Middleware;
 using DocumentFormat.OpenXml.Spreadsheet;
+using Azure;
 
 namespace GYM_BE.All.Report
 {
@@ -247,6 +248,152 @@ namespace GYM_BE.All.Report
             return stream.ToArray();
         }
 
+        public async Task<FormatedResponse> GetStats(ReportDTO request)
+        {
+            // Truy vấn thủ tục SQL để lấy dữ liệu
+            string cnnString = _appSettings.ConnectionStrings.CoreDb;
+            using SqlConnection cnn = new(cnnString);
+            using SqlCommand cmd = new();
+            using DataSet ds = new();
+            cmd.Connection = cnn;
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.CommandText = "PKG_GET_STAT";
+            if (request.Month != null && request.Month != "")
+            {
+                cmd.Parameters.Add(new SqlParameter
+                {
+                    ParameterName = "P_MONTH",
+                    SqlDbType = (SqlDbType)Enum.Parse(typeof(SqlDbType), "VarChar", true),
+                    Direction = ParameterDirection.Input,
+                    Value = request.Month,
+                });
+            }
+            if (request.Year != null)
+            {
+                cmd.Parameters.Add(new SqlParameter
+                {
+                    ParameterName = "P_YEAR",
+                    SqlDbType = (SqlDbType)Enum.Parse(typeof(SqlDbType), "VarChar", true),
+                    Direction = ParameterDirection.Input,
+                    Value = request.Year,
+                });
+            }
+
+            using SqlDataAdapter da = new(cmd);
+            da.Fill(ds);
+
+            var stats = ds.Tables[0].Rows[0];
+
+            var res = new { 
+                TotalNam = stats["TOTAL_NAM"],
+                TotalNu = stats["TOTAL_NU"], 
+                AverageAge = stats["AVERAGE_AGE"],
+                TheHetHan = stats["THE_HET_HAN"],
+                DoanhThu = stats["DOANH_THU"],
+            };
+            return new FormatedResponse()
+            {
+                InnerBody = res
+            };
+        }
+        public async Task<FormatedResponse> GetBarChart(ReportDTO request)
+        {
+            // Truy vấn thủ tục SQL để lấy dữ liệu
+            string cnnString = _appSettings.ConnectionStrings.CoreDb;
+            using SqlConnection cnn = new(cnnString);
+            using SqlCommand cmd = new();
+            using DataSet ds = new();
+            cmd.Connection = cnn;
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.CommandText = "PKG_GET_BAR";
+            if (request.Month != null && request.Month != "")
+            {
+                cmd.Parameters.Add(new SqlParameter
+                {
+                    ParameterName = "P_MONTH",
+                    SqlDbType = (SqlDbType)Enum.Parse(typeof(SqlDbType), "VarChar", true),
+                    Direction = ParameterDirection.Input,
+                    Value = request.Month,
+                });
+            }
+            if (request.Year != null)
+            {
+                cmd.Parameters.Add(new SqlParameter
+                {
+                    ParameterName = "P_YEAR",
+                    SqlDbType = (SqlDbType)Enum.Parse(typeof(SqlDbType), "VarChar", true),
+                    Direction = ParameterDirection.Input,
+                    Value = request.Year,
+                });
+            }
+            if (request.Type != null)
+            {
+                cmd.Parameters.Add(new SqlParameter
+                {
+                    ParameterName = "P_TYPE",
+                    SqlDbType = (SqlDbType)Enum.Parse(typeof(SqlDbType), "int", true),
+                    Direction = ParameterDirection.Input,
+                    Value = request.Type,
+                });
+            }
+
+            using SqlDataAdapter da = new(cmd);
+            da.Fill(ds);
+
+            return new FormatedResponse()
+            {
+                InnerBody = ds.Tables[0]
+            };
+        }
+        public async Task<FormatedResponse> GetPieChart(ReportDTO request)
+        {
+            // Truy vấn thủ tục SQL để lấy dữ liệu
+            string cnnString = _appSettings.ConnectionStrings.CoreDb;
+            using SqlConnection cnn = new(cnnString);
+            using SqlCommand cmd = new();
+            using DataSet ds = new();
+            cmd.Connection = cnn;
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.CommandText = "PKG_GET_DOUGHNUT";
+            if (request.Month != null && request.Month != "")
+            {
+                cmd.Parameters.Add(new SqlParameter
+                {
+                    ParameterName = "P_MONTH",
+                    SqlDbType = (SqlDbType)Enum.Parse(typeof(SqlDbType), "VarChar", true),
+                    Direction = ParameterDirection.Input,
+                    Value = request.Month,
+                });
+            }
+            if (request.Year != null)
+            {
+                cmd.Parameters.Add(new SqlParameter
+                {
+                    ParameterName = "P_YEAR",
+                    SqlDbType = (SqlDbType)Enum.Parse(typeof(SqlDbType), "VarChar", true),
+                    Direction = ParameterDirection.Input,
+                    Value = request.Year,
+                });
+            }
+            if (request.Type != null)
+            {
+                cmd.Parameters.Add(new SqlParameter
+                {
+                    ParameterName = "P_TYPE",
+                    SqlDbType = (SqlDbType)Enum.Parse(typeof(SqlDbType), "int", true),
+                    Direction = ParameterDirection.Input,
+                    Value = request.Type,
+                });
+            }
+
+            using SqlDataAdapter da = new(cmd);
+            da.Fill(ds);
+
+            return new FormatedResponse()
+            {
+                InnerBody = ds.Tables[0]
+            };
+        }
 
     }
 }

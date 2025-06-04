@@ -51,5 +51,29 @@ namespace GYM_BE.All.Report
 
             return File(result, "application/octet-stream", $"{request.Name}.xlsx");
         }
+
+        [AllowAnonymous]
+        [HttpPost]
+        public async Task<IActionResult> GetStats(ReportDTO request)
+        {
+            var result = await _ReportRepository.GetStats(request);
+            return Ok(result);
+        }
+
+        [AllowAnonymous]
+        [HttpPost]
+        public async Task<IActionResult> GetBarChart(ReportDTO request)
+        {
+            var result = await _ReportRepository.GetBarChart(request);
+            return Ok(result);
+        }
+
+        [AllowAnonymous]
+        [HttpPost]
+        public async Task<IActionResult> GetPieChart(ReportDTO request)
+        {
+            var result = await _ReportRepository.GetPieChart(request);
+            return Ok(result);
+        }
     }
 }
